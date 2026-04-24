@@ -81,6 +81,7 @@ function update() {
 
 function moveSnake() {
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+    wrapPosition(head);
     snake.unshift(head);
     
     // Check if food eaten
@@ -93,15 +94,18 @@ function moveSnake() {
     }
 }
 
+function wrapPosition(head) {
+    // Wrap snake around borders instead of killing it
+    if (head.x < 0) head.x = CANVAS_SIZE - TILE_SIZE;
+    if (head.x >= CANVAS_SIZE) head.x = 0;
+    if (head.y < 0) head.y = CANVAS_SIZE - TILE_SIZE;
+    if (head.y >= CANVAS_SIZE) head.y = 0;
+}
+
 function checkCollision() {
     const head = snake[0];
     
-    // Wall collision
-    if (head.x < 0 || head.x >= CANVAS_SIZE || head.y < 0 || head.y >= CANVAS_SIZE) {
-        return true;
-    }
-    
-    // Self collision
+    // Self collision only (no wall collision)
     for (let i = 1; i < snake.length; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
@@ -254,8 +258,18 @@ function gameOver() {
 // Event Listeners
 document.addEventListener('keydown', (e) => {
     // Prevent default scrolling for arrow keys
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.code)) {
         e.preventDefault();
+    }
+
+    // Enter key starts or restarts the game
+    if (e.key === 'Enter') {
+        if (!startScreen.classList.contains('hidden')) {
+            initGame();
+        } else if (!gameOverScreen.classList.contains('hidden')) {
+            initGame();
+        }
+        return;
     }
     
     if (!isGameRunning) return;
