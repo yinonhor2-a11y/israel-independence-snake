@@ -272,21 +272,21 @@ button:active {
     }
 
     .game-container {
-        padding: 15px 10px;
-        gap: 15px;
+        padding: 5px 10px;
+        gap: 5px;
         height: auto;
         min-height: 100%;
         overflow-y: auto;
     }
 
-    h1 { font-size: 1.8rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 2px; }
     
     .score-board {
-        min-width: 100px;
-        padding: 8px 15px;
+        min-width: 80px;
+        padding: 4px 10px;
     }
 
-    .score-value { font-size: 1.2rem; }
+    .score-value { font-size: 1rem; }
 
     .canvas-wrapper {
         width: 100%;
