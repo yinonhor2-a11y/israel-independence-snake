@@ -425,7 +425,7 @@ function gameOver() {
     gameOverScreen.classList.remove('hidden');
 }
 
-// ---- Event Listeners ----
+// ---- Keyboard Controls ----
 document.addEventListener('keydown', (e) => {
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.code)) {
         e.preventDefault();
@@ -450,9 +450,74 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// ---- Touch Swipe Controls ----
+let touchStartX = 0;
+let touchStartY = 0;
+
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (!isGameRunning) {
+        // Tap to start
+        if (!startScreen.classList.contains('hidden')) initGame();
+        else if (!gameOverScreen.classList.contains('hidden')) initGame();
+        return;
+    }
+
+    const dx_touch = e.changedTouches[0].clientX - touchStartX;
+    const dy_touch = e.changedTouches[0].clientY - touchStartY;
+    const absDx = Math.abs(dx_touch);
+    const absDy = Math.abs(dy_touch);
+    if (Math.max(absDx, absDy) < 15) return; // too small, ignore
+
+    const goingUp = dy === -TILE_SIZE;
+    const goingDown = dy === TILE_SIZE;
+    const goingRight = dx === TILE_SIZE;
+    const goingLeft = dx === -TILE_SIZE;
+
+    if (absDx > absDy) {
+        // Horizontal swipe
+        if (dx_touch > 0 && !goingLeft)  { dx = TILE_SIZE;  dy = 0; }
+        if (dx_touch < 0 && !goingRight) { dx = -TILE_SIZE; dy = 0; }
+    } else {
+        // Vertical swipe
+        if (dy_touch > 0 && !goingUp)   { dx = 0; dy = TILE_SIZE;  }
+        if (dy_touch < 0 && !goingDown) { dx = 0; dy = -TILE_SIZE; }
+    }
+}, { passive: false });
+
+// ---- D-Pad Button Controls ----
+function handleDpad(direction) {
+    if (!isGameRunning) return;
+    const goingUp = dy === -TILE_SIZE;
+    const goingDown = dy === TILE_SIZE;
+    const goingRight = dx === TILE_SIZE;
+    const goingLeft = dx === -TILE_SIZE;
+
+    switch (direction) {
+        case 'up':    if (!goingDown)  { dx = 0; dy = -TILE_SIZE; } break;
+        case 'down':  if (!goingUp)    { dx = 0; dy = TILE_SIZE;  } break;
+        case 'left':  if (!goingRight) { dx = -TILE_SIZE; dy = 0; } break;
+        case 'right': if (!goingLeft)  { dx = TILE_SIZE;  dy = 0; } break;
+    }
+}
+
+['Up', 'Down', 'Left', 'Right'].forEach(dir => {
+    const btn = document.getElementById('dpad' + dir);
+    if (!btn) return;
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDpad(dir.toLowerCase()); }, { passive: false });
+    btn.addEventListener('mousedown', () => handleDpad(dir.toLowerCase()));
+});
+
 startBtn.addEventListener('click', initGame);
 restartBtn.addEventListener('click', initGame);
 
 // Initial canvas fill
 ctx.fillStyle = '#050510';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
+

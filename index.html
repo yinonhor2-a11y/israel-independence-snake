@@ -2,23 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Israel Independence Day Snake</title>
     <link rel="stylesheet" href="index.css">
-    <!-- Google Fonts for a modern look -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="game-container">
         <div class="header">
             <h1>Yom Ha'atzmaut Snake 🇮🇱</h1>
-            <div class="score-board">
-                <span class="score-label">Score:</span>
-                <span id="score" class="score-value">0</span>
-            </div>
-            <div class="score-board">
-                <span class="score-label">Best (<span id="highScoreName">None</span>):</span>
-                <span id="highScore" class="score-value">0</span>
+            <div class="scores-row">
+                <div class="score-board">
+                    <span class="score-label">Score:</span>
+                    <span id="score" class="score-value">0</span>
+                </div>
+                <div class="score-board">
+                    <span class="score-label">Best (<span id="highScoreName">None</span>):</span>
+                    <span id="highScore" class="score-value">0</span>
+                </div>
             </div>
         </div>
 
@@ -33,7 +34,7 @@
                 </div>
                 <div id="startScreen" class="overlay">
                     <h2>Ready to play?</h2>
-                    <p>Use Arrow Keys or Enter to start.</p>
+                    <p class="hint-text">Arrow keys / Swipe / D-Pad</p>
                     <input type="text" id="playerName" placeholder="Enter your name" maxlength="15" autocomplete="off">
                     <button id="startBtn">Start Game</button>
                 </div>
@@ -46,9 +47,18 @@
                 </ol>
             </div>
         </div>
-        
-        <div class="controls-hint">
-            <p>Use arrow keys ↑ ↓ ← → to move &nbsp;|&nbsp; Enter to start/restart</p>
+
+        <!-- Mobile D-Pad Controls -->
+        <div class="dpad" id="dpad">
+            <button class="dpad-btn dpad-up"    id="dpadUp">▲</button>
+            <button class="dpad-btn dpad-left"  id="dpadLeft">◀</button>
+            <button class="dpad-btn dpad-center" id="dpadCenter">🇮🇱</button>
+            <button class="dpad-btn dpad-right" id="dpadRight">▶</button>
+            <button class="dpad-btn dpad-down"  id="dpadDown">▼</button>
+        </div>
+
+        <div class="controls-hint desktop-only">
+            <p>Arrow keys ↑ ↓ ← → to move &nbsp;|&nbsp; Enter to start/restart</p>
         </div>
     </div>
 
