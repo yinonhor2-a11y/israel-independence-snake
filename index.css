@@ -140,6 +140,27 @@ button:active {
     transform: translateY(1px);
 }
 
+#playerName {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--primary-blue);
+    color: var(--white);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    outline: none;
+    text-align: center;
+    width: 80%;
+    max-width: 250px;
+    transition: all 0.3s;
+}
+
+#playerName:focus {
+    border-color: #3366ff;
+    box-shadow: 0 0 10px rgba(51, 102, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+}
+
 .controls-hint {
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.9rem;

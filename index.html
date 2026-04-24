@@ -17,7 +17,7 @@
                 <span id="score" class="score-value">0</span>
             </div>
             <div class="score-board">
-                <span class="score-label">High Score:</span>
+                <span class="score-label">High Score (<span id="highScoreName">None</span>):</span>
                 <span id="highScore" class="score-value">0</span>
             </div>
         </div>
@@ -32,6 +32,7 @@
             <div id="startScreen" class="overlay">
                 <h2>Ready to play?</h2>
                 <p>Use Arrow Keys to move.</p>
+                <input type="text" id="playerName" placeholder="Enter your name" maxlength="15" autocomplete="off">
                 <button id="startBtn">Start Game</button>
             </div>
         </div>

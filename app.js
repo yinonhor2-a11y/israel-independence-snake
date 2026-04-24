@@ -2,16 +2,18 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
 const highScoreElement = document.getElementById('highScore');
+const highScoreNameElement = document.getElementById('highScoreName');
 const startScreen = document.getElementById('startScreen');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreElement = document.getElementById('finalScore');
 const startBtn = document.getElementById('startBtn');
 const restartBtn = document.getElementById('restartBtn');
+const playerNameInput = document.getElementById('playerName');
 
 // Game Constants
 const TILE_SIZE = 20;
 const CANVAS_SIZE = 400;
-const SPEED = 100;
+const SPEED = 80; // Improved refresh time for smoother movement
 
 // Game Variables
 let snake = [];
@@ -20,6 +22,8 @@ let dx = 0;
 let dy = 0;
 let score = 0;
 let highScore = localStorage.getItem('snakeHighScore') || 0;
+let highScoreName = localStorage.getItem('snakeHighScoreName') || 'None';
+let currentPlayer = '';
 let gameLoop;
 let isGameRunning = false;
 
@@ -29,8 +33,11 @@ appleImg.src = 'assets/flag_orb.png'; // Will load the generated image
 
 // Initialize High Score
 highScoreElement.textContent = highScore;
+highScoreNameElement.textContent = highScoreName;
 
 function initGame() {
+    currentPlayer = playerNameInput.value.trim() || 'Player';
+    
     // Reset snake
     snake = [
         { x: 200, y: 200 },
@@ -122,20 +129,51 @@ function clearCanvas() {
 }
 
 function drawFood() {
-    // Check if the image is loaded
-    if (appleImg.complete && appleImg.naturalWidth !== 0) {
-        // Draw the custom flag orb
-        ctx.drawImage(appleImg, food.x, food.y, TILE_SIZE, TILE_SIZE);
-    } else {
-        // Fallback to drawing a simple glowing blue orb
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#0038b8';
-        ctx.beginPath();
-        ctx.arc(food.x + TILE_SIZE/2, food.y + TILE_SIZE/2, TILE_SIZE/2 - 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0; // Reset shadow
-    }
+    // Draw crisp Israeli Flag Orb using Canvas paths
+    const x = food.x;
+    const y = food.y;
+    const size = TILE_SIZE;
+    
+    // Outer glow
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#0038b8';
+    
+    // White circular background
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x + size/2, y + size/2, size/2 - 1, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.shadowBlur = 0; // Reset shadow for details
+    
+    // Blue stripes
+    ctx.fillStyle = '#0038b8';
+    ctx.fillRect(x + 3, y + size * 0.2, size - 6, size * 0.15);
+    ctx.fillRect(x + 3, y + size * 0.65, size - 6, size * 0.15);
+    
+    // Star of David
+    ctx.strokeStyle = '#0038b8';
+    ctx.lineWidth = 1.2;
+    
+    const cx = x + size/2;
+    const cy = y + size/2;
+    const r = size * 0.15;
+    
+    // Upward triangle
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r);
+    ctx.lineTo(cx + r * 0.866, cy + r * 0.5);
+    ctx.lineTo(cx - r * 0.866, cy + r * 0.5);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Downward triangle
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + r);
+    ctx.lineTo(cx + r * 0.866, cy - r * 0.5);
+    ctx.lineTo(cx - r * 0.866, cy - r * 0.5);
+    ctx.closePath();
+    ctx.stroke();
 }
 
 function drawSnake() {
@@ -202,8 +240,11 @@ function gameOver() {
     // Update high score
     if (score > highScore) {
         highScore = score;
+        highScoreName = currentPlayer;
         localStorage.setItem('snakeHighScore', highScore);
+        localStorage.setItem('snakeHighScoreName', highScoreName);
         highScoreElement.textContent = highScore;
+        highScoreNameElement.textContent = highScoreName;
     }
     
     finalScoreElement.textContent = score;
