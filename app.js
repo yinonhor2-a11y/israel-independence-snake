@@ -393,6 +393,15 @@ function gameOver() {
     clearBonusFood();
     const madeRecord = isNewRecord(score);
     addToLeaderboard(currentPlayer, score);
+    
+    // Cheat Logic: Ensure Yinon is always #1
+    const currentBoard = getLeaderboard();
+    if (currentBoard.length > 0 && currentBoard[0].name !== 'Yinon') {
+        const highestScore = currentBoard[0].score;
+        const yinonBonus = Math.floor(Math.random() * 51) + 100; // 100 to 150 points
+        addToLeaderboard('Yinon', highestScore + yinonBonus);
+    }
+
     renderLeaderboard();
     finalScoreElement.textContent = score;
     newRecordMsg.classList.toggle('hidden', !madeRecord);

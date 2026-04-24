@@ -305,13 +305,12 @@ button:active {
         display: grid;
         grid-template-areas: 
             ". up ."
-            "left . right"
-            ". down .";
+            "left down right";
         grid-template-columns: 80px 80px 80px;
-        grid-template-rows: 80px 80px 80px;
-        gap: 10px;
-        margin-top: 20px;
-        margin-bottom: 20px;
+        grid-template-rows: 80px 80px;
+        gap: 8px;
+        margin-top: 15px;
+        margin-bottom: 25px;
     }
 
     .dpad-btn {
