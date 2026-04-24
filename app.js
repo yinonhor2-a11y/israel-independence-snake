@@ -18,9 +18,18 @@ const CANVAS_SIZE = 400;
 const SPEED = 80;
 const MAX_SCORES = 8;
 
+// Bonus orb config
+const BONUS_TYPES = [
+    { type: 'menorah', points: 30, color: '#FFD700', glow: '#FFA500', label: '🕎 +30' },
+    { type: 'kotel',   points: 50, color: '#b39ddb', glow: '#7c4dff', label: '🪨 +50' },
+];
+const BONUS_DURATION = 5000; // ms before bonus disappears
+
 // Game Variables
 let snake = [];
 let food = { x: 0, y: 0 };
+let bonusFood = null;        // { x, y, bonusType, expiresAt, timerId }
+let foodEatenCount = 0;
 let dx = 0;
 let dy = 0;
 let score = 0;
@@ -28,19 +37,17 @@ let currentPlayer = '';
 let gameLoop;
 let isGameRunning = false;
 
-// ---- Leaderboard (stored as JSON array of {name, score}) ----
-function getLeaderboard() {
-    try {
-        return JSON.parse(localStorage.getItem('snakeLeaderboard')) || [];
-    } catch {
-        return [];
-    }
-}
+// Floating score text
+let floatingTexts = [];
 
+// ---- Leaderboard ----
+function getLeaderboard() {
+    try { return JSON.parse(localStorage.getItem('snakeLeaderboard')) || []; }
+    catch { return []; }
+}
 function saveLeaderboard(board) {
     localStorage.setItem('snakeLeaderboard', JSON.stringify(board));
 }
-
 function addToLeaderboard(name, playerScore) {
     const board = getLeaderboard();
     board.push({ name, score: playerScore });
@@ -49,22 +56,18 @@ function addToLeaderboard(name, playerScore) {
     saveLeaderboard(trimmed);
     return trimmed;
 }
-
 function isNewRecord(playerScore) {
     const board = getLeaderboard();
     if (board.length < MAX_SCORES) return true;
     return playerScore > board[board.length - 1].score;
 }
-
 function renderLeaderboard() {
     const board = getLeaderboard();
     const medals = ['🥇', '🥈', '🥉'];
-
     if (board.length === 0) {
         leaderboardList.innerHTML = '<li class="empty-entry">No scores yet</li>';
         return;
     }
-
     leaderboardList.innerHTML = board.map((entry, i) => `
         <li>
             <span class="lb-rank">${medals[i] || (i + 1) + '.'}</span>
@@ -72,23 +75,16 @@ function renderLeaderboard() {
             <span class="lb-score">${entry.score}</span>
         </li>
     `).join('');
-
-    // Update top score display in header
     const top = board[0];
     highScoreElement.textContent = top.score;
     highScoreNameElement.textContent = top.name;
 }
 
 // ---- Remember last player name ----
-function getLastName() {
-    return localStorage.getItem('snakeLastName') || '';
-}
+function getLastName() { return localStorage.getItem('snakeLastName') || ''; }
+function saveLastName(name) { localStorage.setItem('snakeLastName', name); }
 
-function saveLastName(name) {
-    localStorage.setItem('snakeLastName', name);
-}
-
-// ---- Init ----
+// ---- Init on page load ----
 playerNameInput.value = getLastName();
 renderLeaderboard();
 
@@ -102,11 +98,13 @@ function initGame() {
         { x: 180, y: 200 },
         { x: 160, y: 200 }
     ];
-
     dx = TILE_SIZE;
     dy = 0;
     score = 0;
+    foodEatenCount = 0;
+    floatingTexts = [];
     scoreElement.textContent = score;
+    clearBonusFood();
 
     generateFood();
 
@@ -115,22 +113,18 @@ function initGame() {
     newRecordMsg.classList.add('hidden');
 
     isGameRunning = true;
-
     if (gameLoop) clearInterval(gameLoop);
     gameLoop = setInterval(update, SPEED);
 }
 
 function update() {
     moveSnake();
-
-    if (checkCollision()) {
-        gameOver();
-        return;
-    }
-
+    if (checkCollision()) { gameOver(); return; }
     clearCanvas();
     drawFood();
+    if (bonusFood) drawBonusFood();
     drawSnake();
+    drawFloatingTexts();
 }
 
 function moveSnake() {
@@ -138,13 +132,72 @@ function moveSnake() {
     wrapPosition(head);
     snake.unshift(head);
 
+    let ate = false;
+
+    // Regular food
     if (head.x === food.x && head.y === food.y) {
         score += 10;
         scoreElement.textContent = score;
+        spawnFloatingText('+10', head.x, head.y, '#7adfff');
         generateFood();
-    } else {
-        snake.pop();
+        foodEatenCount++;
+        ate = true;
+        trySpawnBonus();
     }
+
+    // Bonus food
+    if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+        const bonus = BONUS_TYPES.find(b => b.type === bonusFood.bonusType);
+        score += bonus.points;
+        scoreElement.textContent = score;
+        spawnFloatingText(bonus.label, head.x, head.y, bonus.color);
+        clearBonusFood();
+        ate = true;
+    }
+
+    if (!ate) snake.pop();
+}
+
+function trySpawnBonus() {
+    if (bonusFood) return; // already one active
+    // ~40% chance to spawn a bonus after eating
+    if (Math.random() < 0.4) {
+        spawnBonusFood();
+    }
+}
+
+function spawnBonusFood() {
+    const bonusType = BONUS_TYPES[Math.floor(Math.random() * BONUS_TYPES.length)];
+    const pos = randomFreePosition();
+    const timerId = setTimeout(clearBonusFood, BONUS_DURATION);
+
+    bonusFood = {
+        x: pos.x,
+        y: pos.y,
+        bonusType: bonusType.type,
+        expiresAt: Date.now() + BONUS_DURATION,
+        timerId
+    };
+}
+
+function clearBonusFood() {
+    if (bonusFood && bonusFood.timerId) clearTimeout(bonusFood.timerId);
+    bonusFood = null;
+}
+
+function randomFreePosition() {
+    const maxPos = (CANVAS_SIZE / TILE_SIZE) - 1;
+    let pos;
+    do {
+        pos = {
+            x: Math.floor(Math.random() * maxPos) * TILE_SIZE,
+            y: Math.floor(Math.random() * maxPos) * TILE_SIZE
+        };
+    } while (
+        snake.some(s => s.x === pos.x && s.y === pos.y) ||
+        (pos.x === food.x && pos.y === food.y)
+    );
+    return pos;
 }
 
 function wrapPosition(head) {
@@ -166,56 +219,152 @@ function generateFood() {
     const maxPos = (CANVAS_SIZE / TILE_SIZE) - 1;
     food.x = Math.floor(Math.random() * maxPos) * TILE_SIZE;
     food.y = Math.floor(Math.random() * maxPos) * TILE_SIZE;
-
     snake.forEach(segment => {
         if (food.x === segment.x && food.y === segment.y) generateFood();
     });
 }
 
+// ---- Floating Score Texts ----
+function spawnFloatingText(text, x, y, color) {
+    floatingTexts.push({ text, x: x + TILE_SIZE / 2, y, color, alpha: 1.0, life: 40 });
+}
+
+function drawFloatingTexts() {
+    floatingTexts = floatingTexts.filter(t => t.life > 0);
+    floatingTexts.forEach(t => {
+        ctx.globalAlpha = t.alpha;
+        ctx.fillStyle = t.color;
+        ctx.font = 'bold 13px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(t.text, t.x, t.y);
+        t.y -= 1;
+        t.life--;
+        t.alpha = t.life / 40;
+    });
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+}
+
+// ---- Draw Functions ----
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+// Regular food: Israeli flag orb
 function drawFood() {
-    const x = food.x;
-    const y = food.y;
-    const size = TILE_SIZE;
+    const x = food.x, y = food.y, s = TILE_SIZE;
 
     ctx.shadowBlur = 10;
     ctx.shadowColor = '#0038b8';
-
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, size / 2 - 1, 0, Math.PI * 2);
+    ctx.arc(x + s / 2, y + s / 2, s / 2 - 1, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.shadowBlur = 0;
 
-    // Blue stripes
     ctx.fillStyle = '#0038b8';
-    ctx.fillRect(x + 3, y + size * 0.2, size - 6, size * 0.15);
-    ctx.fillRect(x + 3, y + size * 0.65, size - 6, size * 0.15);
+    ctx.fillRect(x + 3, y + s * 0.2, s - 6, s * 0.15);
+    ctx.fillRect(x + 3, y + s * 0.65, s - 6, s * 0.15);
 
-    // Star of David
     ctx.strokeStyle = '#0038b8';
     ctx.lineWidth = 1.2;
+    const cx = x + s / 2, cy = y + s / 2, r = s * 0.15;
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r * 0.866, cy + r * 0.5); ctx.lineTo(cx - r * 0.866, cy + r * 0.5); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy + r); ctx.lineTo(cx + r * 0.866, cy - r * 0.5); ctx.lineTo(cx - r * 0.866, cy - r * 0.5); ctx.closePath(); ctx.stroke();
+}
 
-    const cx = x + size / 2;
-    const cy = y + size / 2;
-    const r = size * 0.15;
+// Bonus food dispatcher
+function drawBonusFood() {
+    if (!bonusFood) return;
 
+    // Flicker when near expiry
+    const timeLeft = bonusFood.expiresAt - Date.now();
+    if (timeLeft < 2000 && Math.floor(Date.now() / 200) % 2 === 0) return;
+
+    if (bonusFood.bonusType === 'menorah') drawMenorahOrb(bonusFood.x, bonusFood.y);
+    if (bonusFood.bonusType === 'kotel')   drawKotelOrb(bonusFood.x, bonusFood.y);
+}
+
+// Menorah orb - gold glow
+function drawMenorahOrb(x, y) {
+    const s = TILE_SIZE;
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = '#FFA500';
+    ctx.fillStyle = '#1a1000';
     ctx.beginPath();
-    ctx.moveTo(cx, cy - r);
-    ctx.lineTo(cx + r * 0.866, cy + r * 0.5);
-    ctx.lineTo(cx - r * 0.866, cy + r * 0.5);
-    ctx.closePath();
-    ctx.stroke();
+    ctx.arc(x + s / 2, y + s / 2, s / 2 - 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
 
+    // Draw simplified menorah
+    const cx = x + s / 2;
+    const by = y + s - 3;  // base y
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 1;
+
+    // Base
+    ctx.beginPath(); ctx.moveTo(cx - 5, by); ctx.lineTo(cx + 5, by); ctx.stroke();
+    // Center stem
+    ctx.beginPath(); ctx.moveTo(cx, by); ctx.lineTo(cx, y + 4); ctx.stroke();
+    // Arms: 3 on each side
+    const arms = [4, 7, 10];
+    arms.forEach(offset => {
+        const armY = by - 4;
+        // Left arm
+        ctx.beginPath(); ctx.moveTo(cx, armY); ctx.lineTo(cx - offset, armY - 2); ctx.lineTo(cx - offset, y + 4); ctx.stroke();
+        // Right arm
+        ctx.beginPath(); ctx.moveTo(cx, armY); ctx.lineTo(cx + offset, armY - 2); ctx.lineTo(cx + offset, y + 4); ctx.stroke();
+    });
+
+    // Candle flames (dots on top of each arm + center)
+    ctx.fillStyle = '#FFD700';
+    const flamePositions = [-10, -7, -4, 0, 4, 7, 10];
+    flamePositions.forEach(offset => {
+        ctx.beginPath();
+        ctx.arc(cx + offset, y + 3, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+// Kotel orb - stone wall pattern
+function drawKotelOrb(x, y) {
+    const s = TILE_SIZE;
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = '#7c4dff';
+    ctx.fillStyle = '#2a1f3d';
     ctx.beginPath();
-    ctx.moveTo(cx, cy + r);
-    ctx.lineTo(cx + r * 0.866, cy - r * 0.5);
-    ctx.lineTo(cx - r * 0.866, cy - r * 0.5);
-    ctx.closePath();
+    ctx.arc(x + s / 2, y + s / 2, s / 2 - 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Clip to circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + s / 2, y + s / 2, s / 2 - 1, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Draw stone rows
+    const stoneColor = '#b39ddb';
+    const mortarColor = '#2a1f3d';
+    ctx.fillStyle = stoneColor;
+    const stoneH = 4;
+    const rows = 4;
+    for (let row = 0; row < rows; row++) {
+        const ry = y + 3 + row * (stoneH + 1);
+        const offset = (row % 2) * 4;
+        // Draw 3 stones per row with offset
+        for (let col = -1; col < 3; col++) {
+            const rx = x + offset + col * 8;
+            ctx.fillRect(rx + 1, ry, 7, stoneH);
+        }
+    }
+    ctx.restore();
+
+    // Purple rim
+    ctx.strokeStyle = '#7c4dff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x + s / 2, y + s / 2, s / 2 - 1, 0, Math.PI * 2);
     ctx.stroke();
 }
 
@@ -235,10 +384,8 @@ function drawSnake() {
         if (isHead) {
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#0a0a1a';
-
             let eye1X, eye1Y, eye2X, eye2Y;
-            const eyeSize = 3;
-            const offset = 4;
+            const eyeSize = 3, offset = 4;
 
             if (dx > 0) {
                 eye1X = segment.x + TILE_SIZE - offset - eyeSize; eye1Y = segment.y + offset;
@@ -253,11 +400,9 @@ function drawSnake() {
                 eye1X = segment.x + offset; eye1Y = segment.y + TILE_SIZE - offset - eyeSize;
                 eye2X = segment.x + TILE_SIZE - offset - eyeSize; eye2Y = segment.y + TILE_SIZE - offset - eyeSize;
             }
-
             ctx.fillRect(eye1X, eye1Y, eyeSize, eyeSize);
             ctx.fillRect(eye2X, eye2Y, eyeSize, eyeSize);
         }
-
         ctx.shadowBlur = 0;
     });
 }
@@ -265,19 +410,18 @@ function drawSnake() {
 function gameOver() {
     isGameRunning = false;
     clearInterval(gameLoop);
+    clearBonusFood();
 
     const madeRecord = isNewRecord(score);
     addToLeaderboard(currentPlayer, score);
     renderLeaderboard();
 
     finalScoreElement.textContent = score;
-
     if (madeRecord && score > 0) {
         newRecordMsg.classList.remove('hidden');
     } else {
         newRecordMsg.classList.add('hidden');
     }
-
     gameOverScreen.classList.remove('hidden');
 }
 
@@ -286,16 +430,11 @@ document.addEventListener('keydown', (e) => {
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.code)) {
         e.preventDefault();
     }
-
     if (e.key === 'Enter') {
-        if (!startScreen.classList.contains('hidden')) {
-            initGame();
-        } else if (!gameOverScreen.classList.contains('hidden')) {
-            initGame();
-        }
+        if (!startScreen.classList.contains('hidden')) initGame();
+        else if (!gameOverScreen.classList.contains('hidden')) initGame();
         return;
     }
-
     if (!isGameRunning) return;
 
     const goingUp = dy === -TILE_SIZE;
