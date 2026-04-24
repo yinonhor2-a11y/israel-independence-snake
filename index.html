@@ -17,28 +17,38 @@
                 <span id="score" class="score-value">0</span>
             </div>
             <div class="score-board">
-                <span class="score-label">High Score (<span id="highScoreName">None</span>):</span>
+                <span class="score-label">Best (<span id="highScoreName">None</span>):</span>
                 <span id="highScore" class="score-value">0</span>
             </div>
         </div>
 
-        <div class="canvas-wrapper">
-            <canvas id="gameCanvas" width="400" height="400"></canvas>
-            <div id="gameOverScreen" class="overlay hidden">
-                <h2>Game Over!</h2>
-                <p>Your Score: <span id="finalScore">0</span></p>
-                <button id="restartBtn">Play Again</button>
+        <div class="main-layout">
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+                <div id="gameOverScreen" class="overlay hidden">
+                    <h2>Game Over!</h2>
+                    <p>Your Score: <span id="finalScore">0</span></p>
+                    <p id="newRecordMsg" class="new-record hidden">🏆 New Record!</p>
+                    <button id="restartBtn">Play Again</button>
+                </div>
+                <div id="startScreen" class="overlay">
+                    <h2>Ready to play?</h2>
+                    <p>Use Arrow Keys or Enter to start.</p>
+                    <input type="text" id="playerName" placeholder="Enter your name" maxlength="15" autocomplete="off">
+                    <button id="startBtn">Start Game</button>
+                </div>
             </div>
-            <div id="startScreen" class="overlay">
-                <h2>Ready to play?</h2>
-                <p>Use Arrow Keys to move.</p>
-                <input type="text" id="playerName" placeholder="Enter your name" maxlength="15" autocomplete="off">
-                <button id="startBtn">Start Game</button>
+
+            <div class="leaderboard">
+                <h3>🏆 Leaderboard</h3>
+                <ol id="leaderboardList">
+                    <li class="empty-entry">No scores yet</li>
+                </ol>
             </div>
         </div>
         
         <div class="controls-hint">
-            <p>Use arrow keys ↑ ↓ ← → to move</p>
+            <p>Use arrow keys ↑ ↓ ← → to move &nbsp;|&nbsp; Enter to start/restart</p>
         </div>
     </div>
 
